@@ -4,7 +4,7 @@
 const labelEmail = "Usuário";
 const labelPassword = "Senha";
 const urlImageBackgroundLogin = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
-const logoSize = 4; // Padrão é 4
+const logoSize = 6; // Padrão é 4
 
 /*****************
 *  Tela de Chat
