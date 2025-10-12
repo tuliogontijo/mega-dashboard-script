@@ -5,6 +5,7 @@ const labelEmail = "Usuário";
 const labelPassword = "Senha";
 const urlImageBackgroundLogin = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
 const logoSize = 6; // Padrão é 4
+const removeSSO = true; // Remover o botão de SSO
 
 /*****************
 *  Tela de Chat
@@ -27,7 +28,6 @@ function injectCSS(css, id) {
   style.id = id;
   style.textContent = css;
   document.head.appendChild(style);
-  console.log(`🎨 CSS injetado: ${id}`);
 }
 
 const tasksLogin = [
@@ -43,7 +43,7 @@ const tasksLogin = [
     action: (elemento) => elemento.innerHTML = labelPassword,
     done: false
   },
-  {
+  removeSSO && {
     name: 'removeSSO',  
     selector: 'a[href="/app/login/sso"]',
     action: (elemento) => elemento.closest('.flex.flex-col')?.remove(),
@@ -52,7 +52,7 @@ const tasksLogin = [
   {
     name: 'changeBackgroundLogin',
     selector: 'main',
-    action: (elemento) => elemento.style.backgroundImage = `url('${urlImageBackgroundLogin}')`, // CORRIGIDO: Adicionada sintaxe url()
+    action: (elemento) => elemento.style.backgroundImage = `url('${urlImageBackgroundLogin}')`,
     done: false
   },
   {
@@ -64,28 +64,11 @@ const tasksLogin = [
   },
 ];
 
-const tasksChat = [
-  // {
-  //   name: 'changeBackgroundChat',
-  //   selector: 'ul.conversation-panel',
-  //   action: (elemento) => {
-  //     elemento.style.backgroundImage = `url('${urlImageBackgroundChat}')`; // CORRIGIDO: Adicionada sintaxe url()
-  //     elemento.style.backgroundSize = "contain";
-  //   },
-  //   done: false
-  // },
-  // {
-  //   name: 'changeBubbleOutgoingMessageColor',
-  //   selector: 'div[id^="message"].justify-end div[data-bubble-name="text"]',
-  //   action: (elementos) => elementos.forEach(el => el.style.backgroundColor = bubbleOutgoingMessageColor), // CORRIGIDO: Para múltiplos elementos
-  //   done: false,
-  //   multiple: true // ADICIONADO: Flag para indicar múltiplos elementos
-  // },
-];
+const tasksChat = [];
 
 if (isLoginPage) {
   const loginCSS = `
-    /* Estilos específicos de login podem ir aqui */
+    /* Estilos página de login */
   `;
   if (loginCSS.trim()) {
     injectCSS(loginCSS, 'login-styles');
@@ -99,7 +82,7 @@ if (isLoginPage) {
       background-size: contain !important;
     }
     
-    /* Cor das mensagens enviadas - aplicado automaticamente */
+    /* Cor das mensagens enviadas */
     div[id^="message"].justify-end div[data-bubble-name="text"] {
       background-color: ${bubbleOutgoingMessageColor} !important;
     }
