@@ -1,3 +1,4 @@
+<script>
 /*****************
 *  Tela de Login
 *****************/
@@ -12,6 +13,7 @@ const removeSSO = true; // Remover o botão de SSO
 *****************/
 const urlImageBackgroundChat = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
 const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens enviadas
+const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
 
 
 /**********************************************************************************************/
@@ -69,7 +71,7 @@ const tasksChat = [
     }),
     multiple: true,
     persistent: true,
-    done: false
+    done: translateMessageTimeToPTBR ? false : true
   },
   {
     name: 'translateMessageTime',
@@ -83,7 +85,7 @@ const tasksChat = [
     }),
     multiple: true,
     persistent: true,
-    done: false
+    done: translateMessageTimeToPTBR ? false : true
   },
   {
     name: 'translatePopper',
@@ -97,7 +99,7 @@ const tasksChat = [
     }),
     multiple: true,
     persistent: true,
-    done: false
+    done: translateMessageTimeToPTBR ? false : true
   }
 ];
 
@@ -218,3 +220,4 @@ function translateMessageTime(text) {
 
   return `${day} ${translatedMonth}, ${formattedHour}:${minute}`;
 }
+</script>
