@@ -30,7 +30,11 @@ const tasksLogin = [
   {
     name: 'changeLabelPassword',
     selector: 'label[for="password"]',
-    action: (elemento) => elemento.innerHTML = labelPassword,
+    action: (elemento) => {
+      const label = elemento.innerHTML;
+      elemento.innerHTML = labelPassword + label.substring(label.indexOf("<p>"),label.length);
+    },
+
     done: false
   },
   removeSSO && {
