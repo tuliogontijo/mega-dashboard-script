@@ -23,7 +23,7 @@ function injectCSS(css, id) {
   if (existingStyle) {
     existingStyle.remove();
   }
-  
+
   const style = document.createElement('style');
   style.id = id;
   style.textContent = css;
@@ -44,7 +44,7 @@ const tasksLogin = [
     done: false
   },
   removeSSO && {
-    name: 'removeSSO',  
+    name: 'removeSSO',
     selector: 'a[href="/app/login/sso"]',
     action: (elemento) => elemento.closest('.flex.flex-col')?.remove(),
     done: false
@@ -73,7 +73,7 @@ if (isLoginPage) {
   if (loginCSS.trim()) {
     injectCSS(loginCSS, 'login-styles');
   }
-  
+
 } else {
   const chatCSS = `
     /* Background do painel de conversa */
@@ -87,13 +87,32 @@ if (isLoginPage) {
       background-color: ${bubbleOutgoingMessageColor} !important;
     }
   `;
-  
+
   injectCSS(chatCSS, 'chat-styles');
+}
+
+
+const translateSeparator = (text) => {
+  const traducoes = {
+    'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+    'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+    'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+    'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+  };
+
+  return text
+    .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
+      mes => traducoes[mes])
+    .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
 }
 
 const tasks = isLoginPage ? tasksLogin : tasksChat;
 
-const observer = new MutationObserver(() => {
+/**********************************************************************************************
+*  Mutations
+**********************************************************************************************/
+
+const body = new MutationObserver(() => {
   tasks.forEach(task => {
     if (!task.done) {
       if (task.multiple) {
@@ -117,4 +136,16 @@ const observer = new MutationObserver(() => {
   }
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+const conversationPanel = new MutationObserver(() => {
+  const messageSeparators = document.querySelectorAll("[id^=messageseparator] span");
+  if (messageSeparators.length > 0) {
+    messageSeparators.forEach(ms => {
+      const current = ms.innerHTML;
+      ms.innerHTML = translateSeparator(current);
+    });
+  }
+});
+
+
+body.observe(document.body, { childList: true, subtree: true });
+!isLoginPage && conversationPanel.observe(ddocument.querySelector('ul.conversation-panel'), { childList: true, subtree: true });
