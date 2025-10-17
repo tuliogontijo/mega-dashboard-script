@@ -18,18 +18,6 @@ const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens en
 
 const isLoginPage = window.location.pathname.includes('/app/login');
 
-function injectCSS(css, id) {
-  const existingStyle = document.getElementById(id);
-  if (existingStyle) {
-    existingStyle.remove();
-  }
-
-  const style = document.createElement('style');
-  style.id = id;
-  style.textContent = css;
-  document.head.appendChild(style);
-}
-
 const tasksLogin = [
   {
     name: 'changeLabelEmail',
@@ -62,9 +50,91 @@ const tasksLogin = [
     multiple: true,
     done: false
   },
+
 ];
 
-const tasksChat = [];
+const tasksChat = [
+  {
+    name: 'translateMessageSeparator',
+    selector: '[id^=messageseparator] span',
+    action: (elemento) => elemento.forEach(el => {
+      if (!el.hasAttribute('data-translated')) {
+        const current = el.innerHTML;
+        el.innerHTML = translateSeparator(current);
+        el.title = translateSeparator(current);
+        const parentDiv = el.parentElement;
+        parentDiv.setAttribute('content', translateSeparator(current));
+        el.setAttribute('data-translated', 'true');
+      }
+    }),
+    multiple: true,
+    persistent: true,
+    done: false
+  },
+  {
+    name: 'translateMessageTime',
+    selector: '[id^=message] time',
+    action: (elemento) => elemento.forEach(el => {
+      if (!el.hasAttribute('data-translated')) {
+        const current = el.innerHTML;
+        el.innerHTML = translateMessageTime(current);
+        el.setAttribute('data-translated', 'true');
+      }
+    }),
+    multiple: true,
+    persistent: true,
+    done: false
+  },
+  {
+    name: 'translatePopper',
+    selector: '[id^=popper_][data-popper-placement=top]',
+    action: (elemento) => elemento.forEach(el => {
+      if (!el.hasAttribute('data-translated')) {
+        const current = el.querySelector('.v-popper__inner div div').innerHTML;
+        el.querySelector('.v-popper__inner div div').innerHTML = translateMessageTime(current);
+        el.setAttribute('data-translated', 'true');
+      }
+    }),
+    multiple: true,
+    persistent: true,
+    done: false
+  }
+];
+
+const tasks = isLoginPage ? tasksLogin : tasksChat;
+
+/**********************************************************************************************
+*  Mutations
+**********************************************************************************************/
+
+const body = new MutationObserver(() => {
+  tasks.forEach(task => {
+    if (!task.done) {
+      if (task.multiple) {
+        const elementos = document.querySelectorAll(task.selector);
+        if (elementos.length > 0) {
+          task.action(elementos);
+          task.done = task.persistent ? false : true;
+        }
+      } else {
+        const elemento = document.querySelector(task.selector);
+        if (elemento) {
+          task.action(elemento);
+          task.done = task.persistent ? false : true;
+        }
+      }
+    }
+  });
+
+});
+
+
+body.observe(document.body, { childList: true, subtree: true });
+
+
+/**********************************************************************************************
+*  Functions
+**********************************************************************************************/
 
 if (isLoginPage) {
   const loginCSS = `
@@ -91,6 +161,17 @@ if (isLoginPage) {
   injectCSS(chatCSS, 'chat-styles');
 }
 
+function injectCSS(css, id) {
+  const existingStyle = document.getElementById(id);
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+
+  const style = document.createElement('style');
+  style.id = id;
+  style.textContent = css;
+  document.head.appendChild(style);
+}
 
 const translateSeparator = (text) => {
   const traducoes = {
@@ -106,46 +187,34 @@ const translateSeparator = (text) => {
     .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
 }
 
-const tasks = isLoginPage ? tasksLogin : tasksChat;
+function translateMessageTime(text) {
+  const monthTranslations = {
+    'Jan': 'Jan', 'Feb': 'Fev', 'Mar': 'Mar', 'Apr': 'Abr',
+    'May': 'Mai', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
+    'Sep': 'Set', 'Oct': 'Out', 'Nov': 'Nov', 'Dec': 'Dez'
+  };
 
-/**********************************************************************************************
-*  Mutations
-**********************************************************************************************/
+  const timeRegex = /(\w{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i;
+  const match = text.match(timeRegex);
 
-const body = new MutationObserver(() => {
-  tasks.forEach(task => {
-    if (!task.done) {
-      if (task.multiple) {
-        const elementos = document.querySelectorAll(task.selector);
-        if (elementos.length > 0) {
-          task.action(elementos);
-          task.done = true;
-        }
-      } else {
-        const elemento = document.querySelector(task.selector);
-        if (elemento) {
-          task.action(elemento);
-          task.done = true;
-        }
-      }
-    }
-  });
-
-  if (tasks.every(t => t.done)) {
-    observer.disconnect();
+  if (!match) {
+    console.warn('Formato de hora não reconhecido:', text);
+    return text;
   }
-});
 
-const conversationPanel = new MutationObserver(() => {
-  const messageSeparators = document.querySelectorAll("[id^=messageseparator] span");
-  if (messageSeparators.length > 0) {
-    messageSeparators.forEach(ms => {
-      const current = ms.innerHTML;
-      ms.innerHTML = translateSeparator(current);
-    });
+  const [, month, day, hour, minute, period] = match;
+
+  let hour24 = parseInt(hour, 10);
+  const upperPeriod = period.toUpperCase();
+
+  if (upperPeriod === 'AM') {
+    if (hour24 === 12) hour24 = 0;
+  } else if (upperPeriod === 'PM') {
+    if (hour24 !== 12) hour24 += 12;
   }
-});
 
+  const formattedHour = hour24.toString().padStart(2, '0');
+  const translatedMonth = monthTranslations[month] || month;
 
-body.observe(document.body, { childList: true, subtree: true });
-!isLoginPage && conversationPanel.observe(ddocument.querySelector('ul.conversation-panel'), { childList: true, subtree: true });
+  return `${day} ${translatedMonth}, ${formattedHour}:${minute}`;
+}
