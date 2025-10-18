@@ -1,227 +1,364 @@
 <script>
-/*****************
-*  Tela de Login
-*****************/
-const labelEmail = "Usuário";
-const labelPassword = "Senha";
-const urlImageBackgroundLogin = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
-const logoSize = 6; // Padrão é 4
-const removeSSO = true; // Remover o botão de SSO
+  /*****************
+  *  Tela de Login
+  *****************/
+  const labelEmail = "Usuário";
+  const labelPassword = "Senha";
+  const urlImageBackgroundLogin = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
+  const logoSize = 6; // Padrão é 4
+  const removeSSO = true; // Remover o botão de SSO
 
-/*****************
-*  Tela de Chat
-*****************/
-const urlImageBackgroundChat = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
-const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens enviadas
-const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
+  /*****************
+  *  Dashboard
+  *****************/
+  const urlImageBackgroundChat = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
+  const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens enviadas
+  const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
+
+  const validateInboxName = true; // Validar nome ao criar caixa de entrada (mínusculo, sem caracteres especiais ou espaços)
 
 
-/**********************************************************************************************/
 
-const isLoginPage = window.location.pathname.includes('/app/login');
 
-const tasksLogin = [
-  {
-    name: 'changeLabelEmail',
-    selector: 'label[for="email_address"]',
-    action: (elemento) => elemento.innerHTML = labelEmail,
-    done: false
-  },
-  {
-    name: 'changeLabelPassword',
-    selector: 'label[for="password"]',
-    action: (elemento) => {
-      const label = elemento.innerHTML;
-      elemento.innerHTML = labelPassword + label.substring(label.indexOf("<p>"),label.length);
+  /**********************************************************************************************/
+
+  const isLoginPage = window.location.pathname.includes('/app/login');
+
+  const tasksLogin = [
+    {
+      name: 'changeLabelEmail',
+      selector: 'label[for="email_address"]',
+      action: (elemento) => elemento.innerHTML = labelEmail,
+      done: false
+    },
+    {
+      name: 'changeLabelPassword',
+      selector: 'label[for="password"]',
+      action: (elemento) => {
+        const label = elemento.innerHTML;
+        elemento.innerHTML = labelPassword + label.substring(label.indexOf("<p>"), label.length);
+      },
+
+      done: false
+    },
+    removeSSO && {
+      name: 'removeSSO',
+      selector: 'a[href="/app/login/sso"]',
+      action: (elemento) => elemento.closest('.flex.flex-col')?.remove(),
+      done: false
+    },
+    {
+      name: 'changeBackgroundLogin',
+      selector: 'main',
+      action: (elemento) => elemento.style.backgroundImage = `url('${urlImageBackgroundLogin}')`,
+      done: false
+    },
+    {
+      name: 'changeLogoSize',
+      selector: 'main > section img',
+      action: (elemento) => elemento.forEach(el => el.style.setProperty('height', `${logoSize}rem`, 'important')),
+      multiple: true,
+      done: false
     },
 
-    done: false
-  },
-  removeSSO && {
-    name: 'removeSSO',
-    selector: 'a[href="/app/login/sso"]',
-    action: (elemento) => elemento.closest('.flex.flex-col')?.remove(),
-    done: false
-  },
-  {
-    name: 'changeBackgroundLogin',
-    selector: 'main',
-    action: (elemento) => elemento.style.backgroundImage = `url('${urlImageBackgroundLogin}')`,
-    done: false
-  },
-  {
-    name: 'changeLogoSize',
-    selector: 'main > section img',
-    action: (elemento) => elemento.forEach(el => el.style.setProperty('height', `${logoSize}rem`, 'important')),
-    multiple: true,
-    done: false
-  },
+  ];
 
-];
-
-const tasksChat = [
-  {
-    name: 'translateMessageSeparator',
-    selector: '[id^=messageseparator] span',
-    action: (elemento) => elemento.forEach(el => {
-      if (!el.hasAttribute('data-translated')) {
-        const current = el.innerHTML;
-        el.innerHTML = translateSeparator(current);
-        el.title = translateSeparator(current);
-        const parentDiv = el.parentElement;
-        parentDiv.setAttribute('content', translateSeparator(current));
-        el.setAttribute('data-translated', 'true');
-      }
-    }),
-    multiple: true,
-    persistent: true,
-    done: translateMessageTimeToPTBR ? false : true
-  },
-  {
-    name: 'translateMessageTime',
-    selector: '[id^=message] time',
-    action: (elemento) => elemento.forEach(el => {
-      if (!el.hasAttribute('data-translated')) {
-        const current = el.innerHTML;
-        el.innerHTML = translateMessageTime(current);
-        el.setAttribute('data-translated', 'true');
-      }
-    }),
-    multiple: true,
-    persistent: true,
-    done: translateMessageTimeToPTBR ? false : true
-  },
-  {
-    name: 'translatePopper',
-    selector: '[id^=popper_][data-popper-placement=top]',
-    action: (elemento) => elemento.forEach(el => {
-      if (!el.hasAttribute('data-translated')) {
-        const current = el.querySelector('.v-popper__inner div div').innerHTML;
-        el.querySelector('.v-popper__inner div div').innerHTML = translateMessageTime(current);
-        el.setAttribute('data-translated', 'true');
-      }
-    }),
-    multiple: true,
-    persistent: true,
-    done: translateMessageTimeToPTBR ? false : true
-  }
-];
-
-const tasks = isLoginPage ? tasksLogin : tasksChat;
-
-/**********************************************************************************************
-*  Mutations
-**********************************************************************************************/
-
-const body = new MutationObserver(() => {
-  tasks.forEach(task => {
-    if (!task.done) {
-      if (task.multiple) {
-        const elementos = document.querySelectorAll(task.selector);
-        if (elementos.length > 0) {
-          task.action(elementos);
-          task.done = task.persistent ? false : true;
+  const tasksChat = [
+    translateMessageTimeToPTBR && {
+      name: 'translateMessageSeparator',
+      selector: '[id^=messageseparator] span',
+      action: (elemento) => elemento.forEach(el => {
+        if (!el.hasAttribute('data-translated')) {
+          const current = el.innerHTML;
+          el.innerHTML = translateSeparator(current);
+          el.title = translateSeparator(current);
+          const parentDiv = el.parentElement;
+          parentDiv.setAttribute('content', translateSeparator(current));
+          el.setAttribute('data-translated', 'true');
         }
-      } else {
-        const elemento = document.querySelector(task.selector);
-        if (elemento) {
-          task.action(elemento);
-          task.done = task.persistent ? false : true;
+      }),
+      multiple: true,
+      persistent: true,
+    },
+    translateMessageTimeToPTBR && {
+      name: 'translateMessageTime',
+      selector: '[id^=message] time',
+      action: (elemento) => elemento.forEach(el => {
+        if (!el.hasAttribute('data-translated')) {
+          const current = el.innerHTML;
+          el.innerHTML = translateMessageTime(current);
+          el.setAttribute('data-translated', 'true');
         }
+      }),
+      multiple: true,
+      persistent: true,
+    },
+    translateMessageTimeToPTBR && {
+      name: 'translatePopper',
+      selector: '[id^=popper_][data-popper-placement=top]',
+      action: (elemento) => elemento.forEach(el => {
+        if (!el.hasAttribute('data-translated')) {
+          const current = el.querySelector('.v-popper__inner div div').innerHTML;
+          el.querySelector('.v-popper__inner div div').innerHTML = translateMessageTime(current);
+          el.setAttribute('data-translated', 'true');
+        }
+      }),
+      multiple: true,
+      persistent: true,
+    }
+  ];
+
+  const tasks = isLoginPage ? tasksLogin : tasksChat;
+
+  //let validateInboxNameExecuted = false;
+  const isEvoInboxPage = window.location.search.includes('?provider=evolution');
+
+  /**********************************************************************************************
+  *  Mutations
+  **********************************************************************************************/
+
+  const body = new MutationObserver(() => {
+    tasks.forEach(task => {
+      if (!task.done) {
+        if (task.multiple) {
+          const elementos = document.querySelectorAll(task.selector);
+          if (elementos.length > 0) {
+            task.action(elementos);
+            task.done = task.persistent ? false : true;
+          }
+        } else {
+          const elemento = document.querySelector(task.selector);
+          if (elemento) {
+            task.action(elemento);
+            task.done = task.persistent ? false : true;
+          }
+        }
+      }
+    });
+
+
+    if (validateInboxName && isEvoInboxPage) {
+      const validateInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
+      if (!validateInboxNameExecuted) {
+        console.log("chamou validação")
+        setupNameValidation();
       }
     }
+
   });
 
-});
+
+  body.observe(document.body, { childList: true, subtree: true });
 
 
-body.observe(document.body, { childList: true, subtree: true });
+  /**********************************************************************************************
+  *  Functions
+  **********************************************************************************************/
 
-
-/**********************************************************************************************
-*  Functions
-**********************************************************************************************/
-
-if (isLoginPage) {
-  const loginCSS = `
-    /* Estilos página de login */
-  `;
-  if (loginCSS.trim()) {
-    injectCSS(loginCSS, 'login-styles');
-  }
-
-} else {
-  const chatCSS = `
-    /* Background do painel de conversa */
-    ul.conversation-panel {
-      background-image: url('${urlImageBackgroundChat}') !important;
-      background-size: contain !important;
+  if (isLoginPage) {
+    const loginCSS = `
+      /* Estilos página de login */
+    `;
+    if (loginCSS.trim()) {
+      injectCSS(loginCSS, 'login-styles');
     }
-    
-    /* Cor das mensagens enviadas */
-    div[id^="message"].justify-end div[data-bubble-name="text"] {
-      background-color: ${bubbleOutgoingMessageColor} !important;
+
+  } else {
+    const chatCSS = `
+      /* Background do painel de conversa */
+      ul.conversation-panel {
+        background-image: url('${urlImageBackgroundChat}') !important;
+        background-size: contain !important;
+      }
+      
+      /* Cor das mensagens enviadas */
+      div[id^="message"].justify-end div[data-bubble-name="text"] {
+        background-color: ${bubbleOutgoingMessageColor} !important;
+      }
+    `;
+
+    injectCSS(chatCSS, 'chat-styles');
+  }
+
+  function injectCSS(css, id) {
+    const existingStyle = document.getElementById(id);
+    if (existingStyle) {
+      existingStyle.remove();
     }
-  `;
 
-  injectCSS(chatCSS, 'chat-styles');
-}
-
-function injectCSS(css, id) {
-  const existingStyle = document.getElementById(id);
-  if (existingStyle) {
-    existingStyle.remove();
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = css;
+    document.head.appendChild(style);
   }
 
-  const style = document.createElement('style');
-  style.id = id;
-  style.textContent = css;
-  document.head.appendChild(style);
-}
+  const translateSeparator = (text) => {
+    const traducoes = {
+      'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
+      'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
+      'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
+      'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
+    };
 
-const translateSeparator = (text) => {
-  const traducoes = {
-    'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
-    'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
-    'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
-    'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
-  };
-
-  return text
-    .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
-      mes => traducoes[mes])
-    .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
-}
-
-function translateMessageTime(text) {
-  const monthTranslations = {
-    'Jan': 'Jan', 'Feb': 'Fev', 'Mar': 'Mar', 'Apr': 'Abr',
-    'May': 'Mai', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
-    'Sep': 'Set', 'Oct': 'Out', 'Nov': 'Nov', 'Dec': 'Dez'
-  };
-
-  const timeRegex = /(\w{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i;
-  const match = text.match(timeRegex);
-
-  if (!match) {
-    console.warn('Formato de hora não reconhecido:', text);
-    return text;
+    return text
+      .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
+        mes => traducoes[mes])
+      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
   }
 
-  const [, month, day, hour, minute, period] = match;
+  function translateMessageTime(text) {
+    const monthTranslations = {
+      'Jan': 'Jan', 'Feb': 'Fev', 'Mar': 'Mar', 'Apr': 'Abr',
+      'May': 'Mai', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
+      'Sep': 'Set', 'Oct': 'Out', 'Nov': 'Nov', 'Dec': 'Dez'
+    };
 
-  let hour24 = parseInt(hour, 10);
-  const upperPeriod = period.toUpperCase();
+    const timeRegex = /(\w{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i;
+    const match = text.match(timeRegex);
 
-  if (upperPeriod === 'AM') {
-    if (hour24 === 12) hour24 = 0;
-  } else if (upperPeriod === 'PM') {
-    if (hour24 !== 12) hour24 += 12;
+    if (!match) {
+      console.warn('Formato de hora não reconhecido:', text);
+      return text;
+    }
+
+    const [, month, day, hour, minute, period] = match;
+
+    let hour24 = parseInt(hour, 10);
+    const upperPeriod = period.toUpperCase();
+
+    if (upperPeriod === 'AM') {
+      if (hour24 === 12) hour24 = 0;
+    } else if (upperPeriod === 'PM') {
+      if (hour24 !== 12) hour24 += 12;
+    }
+
+    const formattedHour = hour24.toString().padStart(2, '0');
+    const translatedMonth = monthTranslations[month] || month;
+
+    return `${day} ${translatedMonth}, ${formattedHour}:${minute}`;
   }
 
-  const formattedHour = hour24.toString().padStart(2, '0');
-  const translatedMonth = monthTranslations[month] || month;
+  function setupNameValidation() {
+    const containerElement = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"]');
 
-  return `${day} ${translatedMonth}, ${formattedHour}:${minute}`;
-}
+    if (containerElement) {
+      const form = containerElement.querySelector('form');
+      const firstLabel = form ? form.querySelector('div:first-child label') : null;
+      const inputField = firstLabel ? firstLabel.querySelector('input[type="text"]') : null;
+      const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+
+      if (inputField && submitButton && firstLabel && form) {
+        let errorSpan = null;
+        let isUpdatingButton = false;
+
+        function createErrorSpan() {
+          if (!errorSpan) {
+            errorSpan = document.createElement('span');
+            errorSpan.className = 'message';
+            inputField.insertAdjacentElement('afterend', errorSpan);
+          }
+          return errorSpan;
+        }
+
+        function removeErrorSpan() {
+          if (errorSpan) {
+            errorSpan.remove();
+            errorSpan = null;
+          }
+        }
+
+        function updateButtonState() {
+          if (isUpdatingButton) return;
+
+          isUpdatingButton = true;
+
+          const errorLabels = form.querySelectorAll('label.error');
+          const shouldDisable = errorLabels.length > 0;
+          const isCurrentlyDisabled = submitButton.hasAttribute('disabled');
+
+   
+          if (shouldDisable !== isCurrentlyDisabled) {
+            if (shouldDisable) {
+              submitButton.setAttribute('disabled', '');
+              submitButton.classList.add('disabled');
+            } else {
+              submitButton.removeAttribute('disabled');
+              submitButton.classList.remove('disabled');
+            }
+          }
+
+          setTimeout(() => {
+            isUpdatingButton = false;
+          }, 0);
+        }
+
+        function showError(message) {
+          const span = createErrorSpan();
+          span.textContent = message;
+          firstLabel.classList.add('error');
+          updateButtonState();
+        }
+
+        function clearError() {
+          removeErrorSpan();
+          firstLabel.classList.remove('error');
+          updateButtonState();
+        }
+
+        function validateField() {
+          const value = inputField.value.trim();
+
+          if (value.length === 0) {
+            clearError();
+            return;
+          }
+
+          if (/[^a-z]/.test(value)) {
+            showError('Apenas letras minúsculas são permitidas (a-z)');
+          } else {
+            clearError();
+          }
+        }
+
+        const observer = new MutationObserver(function (mutations) {
+          let shouldUpdate = false;
+
+          mutations.forEach(function (mutation) {
+            if (mutation.type === 'attributes' &&
+              mutation.attributeName === 'class' &&
+              mutation.target.tagName === 'LABEL' &&
+              form.contains(mutation.target)) {
+              shouldUpdate = true;
+            }
+          });
+
+          if (shouldUpdate && !isUpdatingButton) {
+            updateButtonState();
+          }
+        });
+
+        const allLabels = form.querySelectorAll('label');
+        allLabels.forEach(label => {
+          observer.observe(label, {
+            attributes: true,
+            attributeFilter: ['class'],
+            subtree: false
+          });
+        });
+
+        inputField.addEventListener('input', validateField);
+        inputField.addEventListener('blur', validateField);
+        inputField.addEventListener('paste', () => setTimeout(validateField, 50));
+
+        validateField();
+
+        form.setAttribute('validation-installed', 'true');
+
+      }
+    }
+  }
+
+
+
+
 </script>
