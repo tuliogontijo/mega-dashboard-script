@@ -14,10 +14,7 @@
   const urlImageBackgroundChat = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
   const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens enviadas
   const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
-
-  const validateInboxName = true; // Validar nome ao criar caixa de entrada (mínusculo, sem caracteres especiais ou espaços)
-
-
+  const validateEvoInboxName = true; // Validar nome ao criar caixa de entrada Evolution (mínusculo, sem caracteres especiais ou espaços)
 
 
   /**********************************************************************************************/
@@ -110,7 +107,6 @@
 
   const tasks = isLoginPage ? tasksLogin : tasksChat;
 
-  //let validateInboxNameExecuted = false;
   const isEvoInboxPage = window.location.search.includes('?provider=evolution');
 
   /**********************************************************************************************
@@ -137,9 +133,9 @@
     });
 
 
-    if (validateInboxName && isEvoInboxPage) {
-      const validateInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
-      if (!validateInboxNameExecuted) {
+    if (validateEvoInboxName && isEvoInboxPage) {
+      const validateEvoInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
+      if (!validateEvoInboxNameExecuted) {
         console.log("chamou validação")
         setupNameValidation();
       }
