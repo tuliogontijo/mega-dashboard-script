@@ -239,6 +239,11 @@
 
     if (containerElement) {
       const form = containerElement.querySelector('form');
+
+      if (form && form.hasAttribute('validation-installed')) {
+        return;
+      }
+
       const firstLabel = form ? form.querySelector('div:first-child label') : null;
       const inputField = firstLabel ? firstLabel.querySelector('input[type="text"]') : null;
       const submitButton = form ? form.querySelector('button[type="submit"]') : null;
@@ -251,6 +256,7 @@
           if (!errorSpan) {
             errorSpan = document.createElement('span');
             errorSpan.className = 'message';
+            errorSpan.setAttribute('data-custom-validation', 'true'); 
             inputField.insertAdjacentElement('afterend', errorSpan);
           }
           return errorSpan;
@@ -265,14 +271,12 @@
 
         function updateButtonState() {
           if (isUpdatingButton) return;
-
           isUpdatingButton = true;
 
           const errorLabels = form.querySelectorAll('label.error');
           const shouldDisable = errorLabels.length > 0;
           const isCurrentlyDisabled = submitButton.hasAttribute('disabled');
 
-   
           if (shouldDisable !== isCurrentlyDisabled) {
             if (shouldDisable) {
               submitButton.setAttribute('disabled', '');
@@ -297,7 +301,13 @@
 
         function clearError() {
           removeErrorSpan();
-          firstLabel.classList.remove('error');
+          const allErrorSpans = firstLabel.querySelectorAll('span.message');
+
+          if (allErrorSpans.length === 0) {
+            firstLabel.classList.remove('error');
+          }
+   
+
           updateButtonState();
         }
 
@@ -316,6 +326,7 @@
           }
         }
 
+      
         const observer = new MutationObserver(function (mutations) {
           let shouldUpdate = false;
 
@@ -323,7 +334,8 @@
             if (mutation.type === 'attributes' &&
               mutation.attributeName === 'class' &&
               mutation.target.tagName === 'LABEL' &&
-              form.contains(mutation.target)) {
+              form.contains(mutation.target) &&
+              mutation.target !== firstLabel) { 
               shouldUpdate = true;
             }
           });
@@ -333,8 +345,8 @@
           }
         });
 
-        const allLabels = form.querySelectorAll('label');
-        allLabels.forEach(label => {
+        const otherLabels = Array.from(form.querySelectorAll('label')).filter(label => label !== firstLabel);
+        otherLabels.forEach(label => {
           observer.observe(label, {
             attributes: true,
             attributeFilter: ['class'],
@@ -347,12 +359,12 @@
         inputField.addEventListener('paste', () => setTimeout(validateField, 50));
 
         validateField();
-
         form.setAttribute('validation-installed', 'true');
-
       }
     }
   }
+
+
 
 
 
