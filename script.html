@@ -107,7 +107,7 @@
 
   const tasks = isLoginPage ? tasksLogin : tasksChat;
 
-  const isEvoInboxPage = window.location.search.includes('?provider=evolution');
+  
 
   /**********************************************************************************************
   *  Mutations
@@ -132,6 +132,7 @@
       }
     });
 
+    let isEvoInboxPage = window.location.search.includes('?provider=evolution');
 
     if (validateEvoInboxName && isEvoInboxPage) {
       const validateEvoInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
@@ -256,7 +257,7 @@
           if (!errorSpan) {
             errorSpan = document.createElement('span');
             errorSpan.className = 'message';
-            errorSpan.setAttribute('data-custom-validation', 'true'); 
+            errorSpan.setAttribute('data-custom-validation', 'true');
             inputField.insertAdjacentElement('afterend', errorSpan);
           }
           return errorSpan;
@@ -306,13 +307,13 @@
           if (allErrorSpans.length === 0) {
             firstLabel.classList.remove('error');
           }
-   
+
 
           updateButtonState();
         }
 
         function validateField() {
-          const value = inputField.value.trim();
+          const value = inputField.value;
 
           if (value.length === 0) {
             clearError();
@@ -326,7 +327,7 @@
           }
         }
 
-      
+
         const observer = new MutationObserver(function (mutations) {
           let shouldUpdate = false;
 
@@ -335,7 +336,7 @@
               mutation.attributeName === 'class' &&
               mutation.target.tagName === 'LABEL' &&
               form.contains(mutation.target) &&
-              mutation.target !== firstLabel) { 
+              mutation.target !== firstLabel) {
               shouldUpdate = true;
             }
           });
