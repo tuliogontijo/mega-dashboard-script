@@ -4,22 +4,42 @@
   *****************/
   const labelEmail = "Usuário";
   const labelPassword = "Senha";
-  const urlImageBackgroundLogin = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
-  const logoSize = 6; // Padrão é 4
-  const removeSSO = true; // Remover o botão de SSO
+  const backgroundLogin = {
+    keepStandard: true, // MUDE PARA false PARA INSERIR UMA IMAGEM DE FUNDO PERSONALIZADA NA TELA DE LOGIN
+    light: "INSIRA A URL DA IMAGEM DE FUNDO PARA O TEMA CLARO", // URL da imagem de fundo para o tema claro
+    dark: "INSIRA A URL DA IMAGEM DE FUNDO PARA O TEMA ESCURO" // URL da imagem de fundo para o tema escuro
+  };
+  const logoSize = 10; // Padrão é 4
 
   /*****************
   *  Dashboard
   *****************/
-  const urlImageBackgroundChat = "https://s3.129.213.96.47.nip.io/chatwoot/branding%2Ffundo.png";
-  const bubbleOutgoingMessageColor = "#144d37"; // cor dos balões de mensagens enviadas
   const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
-  const validateEvoInboxName = true; // Validar nome ao criar caixa de entrada Evolution (mínusculo, sem caracteres especiais ou espaços)
+  const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
+  const backgroundChat = {
+    keepStandard: true, // MUDE PARA false PARA INSERIR UMA IMAGEM DE FUNDO PERSONALIZADA NO DASHBOARD
+    light: "INSIRA A URL DA IMAGEM DE FUNDO PARA O TEMA CLARO", // URL da imagem de fundo para o tema claro
+    dark: "INSIRA A URL DA IMAGEM DE FUNDO PARA O TEMA ESCURO" // URL da imagem de fundo para o tema escuro
+  };
+  const bublleMessageColor = {
+    keepStandard: false, // MUDE PARA false PARA PERSONALIZAR AS CORES DOS BALÕES DE MENSAGEM
+    outgoing: {
+      light: "#d9fdd3", // Cor dos balões de mensagens enviadas
+      dark: "#144d37" // Cor dos balões de mensagens enviadas
+    },
+    incoming: {
+      light: "#ffffff", // Cor dos balões de mensagens recebidas
+      dark: "#242626" // Cor dos balões de mensagens recebidas
+    }
+  };
+
 
 
   /**********************************************************************************************/
 
   const isLoginPage = window.location.pathname.includes('/app/login');
+  const isMobile = window.innerWidth <= 768;
+  let colorTheme = '';
 
   const tasksLogin = [
     {
@@ -35,19 +55,21 @@
         const label = elemento.innerHTML;
         elemento.innerHTML = labelPassword + label.substring(label.indexOf("<p>"), label.length);
       },
-
       done: false
     },
-    removeSSO && {
-      name: 'removeSSO',
-      selector: 'a[href="/app/login/sso"]',
-      action: (elemento) => elemento.closest('.flex.flex-col')?.remove(),
-      done: false
-    },
-    {
+    !backgroundLogin.keepStandard && {
       name: 'changeBackgroundLogin',
       selector: 'main',
-      action: (elemento) => elemento.style.backgroundImage = `url('${urlImageBackgroundLogin}')`,
+      action: (elemento) => {
+        if (colorTheme === 'light') {
+          elemento.style.background = `linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url('${backgroundLogin[colorTheme]}')`;
+          elemento.style.backgroundSize = 'contain';
+        } else if (colorTheme === 'dark') {
+          elemento.style.background = '';
+          elemento.style.backgroundImage = `url('${backgroundLogin[colorTheme]}')`
+        }
+      },
+      persistent: true,
       done: false
     },
     {
@@ -102,12 +124,74 @@
       }),
       multiple: true,
       persistent: true,
-    }
+    },
+    !backgroundChat.keepStandard && {
+      name: 'changeBackgroundChat',
+      selector: 'ul.conversation-panel',
+      action: (elemento) => {
+        if (colorTheme === 'light') {
+          elemento.style.background = `linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), url('${backgroundChat[colorTheme]}')`;
+          elemento.style.backgroundSize = 'contain';
+        } else if (colorTheme === 'dark') {
+          elemento.style.backgroundImage = `url('${backgroundChat[colorTheme]}')`
+        }
+      },
+      persistent: true,
+    },
+    !bublleMessageColor.keepStandard && {
+      name: 'changeBubbleOutgoingMessageColor',
+      selector: '.right-bubble',
+      action: (elemento) => {
+        elemento.forEach(el => {
+          el.style.backgroundColor = bublleMessageColor.outgoing[colorTheme];
+          el.style.boxShadow = "0px 0.5px 1px #666666";
+          if (colorTheme === 'light') {
+            const text = el.querySelector('p');
+            const time = el.querySelector('time');
+            text && (text.style.color = '#000');
+            time && (time.style.color = '#666666');
+          }
+        })
+      },
+      multiple: true,
+      persistent: true,
+    },
+    !bublleMessageColor.keepStandard && {
+      name: 'changeBubbleIncomingMessageColor',
+      selector: '.left-bubble',
+      action: (elemento) => {
+        elemento.forEach(el => {
+          el.style.backgroundColor = bublleMessageColor.incoming[colorTheme];
+          el.style.boxShadow = "0px 0.5px 2px #AAAAAA";
+        })
+      },
+      multiple: true,
+      persistent: true,
+    },
+    removeAutoFocusChatInputAtMobile && {
+      name: 'removeAutoFocusChatInputAtMobile',
+      selector: '.ProseMirror.ProseMirror-woot-style',
+      action: (elemento) => {
+        if (isMobile && elemento && elemento.getAttribute('contenteditable') === 'true') {
+          elemento.setAttribute('contenteditable', 'false');
+          const enableEditing = () => {
+            elemento.setAttribute('contenteditable', 'true');
+            elemento.focus();
+            elemento.removeEventListener('touchstart', enableEditing);
+            elemento.removeEventListener('click', enableEditing);
+          };
+          elemento.addEventListener('touchstart', enableEditing);
+          elemento.addEventListener('click', enableEditing);
+        }
+      },
+      multiple: false,
+      persistent: true,
+    },
   ];
 
   const tasks = isLoginPage ? tasksLogin : tasksChat;
 
-  
+
 
   /**********************************************************************************************
   *  Mutations
@@ -132,13 +216,18 @@
       }
     });
 
+    if (isLoginPage) {
+      colorTheme = document.getElementsByTagName('html')[0].classList.contains('dark') ? 'dark' : 'light';
+    } else {
+      colorTheme = document.getElementsByTagName('html')[0].style.colorScheme;
+    }
     let isEvoInboxPage = window.location.search.includes('?provider=evolution');
 
     if (validateEvoInboxName && isEvoInboxPage) {
       const validateEvoInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
       if (!validateEvoInboxNameExecuted) {
         console.log("chamou validação")
-        setupNameValidation();
+        setupEvoInboxNameValidation();
       }
     }
 
@@ -147,35 +236,29 @@
 
   body.observe(document.body, { childList: true, subtree: true });
 
+  /**********************************************************************************************
+  *  Styles
+  **********************************************************************************************/
+
+  let stylesId, css;
+  if (isLoginPage) {
+    css = `
+      /* Estilos página de login */
+    `;
+    stylesId = 'login-styles';
+
+
+  } else {
+    css = `
+      /* Estilos página de chat */
+    `;
+    stylesId = 'chat-styles';
+  }
+  injectCSS(css, stylesId);
 
   /**********************************************************************************************
   *  Functions
   **********************************************************************************************/
-
-  if (isLoginPage) {
-    const loginCSS = `
-      /* Estilos página de login */
-    `;
-    if (loginCSS.trim()) {
-      injectCSS(loginCSS, 'login-styles');
-    }
-
-  } else {
-    const chatCSS = `
-      /* Background do painel de conversa */
-      ul.conversation-panel {
-        background-image: url('${urlImageBackgroundChat}') !important;
-        background-size: contain !important;
-      }
-      
-      /* Cor das mensagens enviadas */
-      div[id^="message"].justify-end div[data-bubble-name="text"] {
-        background-color: ${bubbleOutgoingMessageColor} !important;
-      }
-    `;
-
-    injectCSS(chatCSS, 'chat-styles');
-  }
 
   function injectCSS(css, id) {
     const existingStyle = document.getElementById(id);
@@ -190,17 +273,25 @@
   }
 
   const translateSeparator = (text) => {
-    const traducoes = {
+    const monthTranslationsComplete = {
       'January': 'Janeiro', 'February': 'Fevereiro', 'March': 'Março',
       'April': 'Abril', 'May': 'Maio', 'June': 'Junho',
       'July': 'Julho', 'August': 'Agosto', 'September': 'Setembro',
       'October': 'Outubro', 'November': 'Novembro', 'December': 'Dezembro'
     };
 
+    const monthTranslations = {
+      'Jan': 'Jan', 'Feb': 'Fev', 'Mar': 'Mar', 'Apr': 'Abr',
+      'May': 'Mai', 'Jun': 'Jun', 'Jul': 'Jul', 'Aug': 'Ago',
+      'Sep': 'Set', 'Oct': 'Out', 'Nov': 'Nov', 'Dec': 'Dez'
+    };
+
     return text
       .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
-        mes => traducoes[mes])
-      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
+        mes => monthTranslationsComplete[mes])
+      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4')
+      .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,
+        mes => monthTranslations[mes]);
   }
 
   function translateMessageTime(text) {
@@ -210,7 +301,7 @@
       'Sep': 'Set', 'Oct': 'Out', 'Nov': 'Nov', 'Dec': 'Dez'
     };
 
-    const timeRegex = /(\w{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})\s+(AM|PM)/i;
+    const timeRegex = /(\w{3})\s+(\d{1,2}),\s+(\d{1,2}):(\d{2})(?:\s+(AM|PM))?/i;
     const match = text.match(timeRegex);
 
     if (!match) {
@@ -221,12 +312,14 @@
     const [, month, day, hour, minute, period] = match;
 
     let hour24 = parseInt(hour, 10);
-    const upperPeriod = period.toUpperCase();
 
-    if (upperPeriod === 'AM') {
-      if (hour24 === 12) hour24 = 0;
-    } else if (upperPeriod === 'PM') {
-      if (hour24 !== 12) hour24 += 12;
+    if (period) {
+      const upperPeriod = period.toUpperCase();
+      if (upperPeriod === 'AM') {
+        if (hour24 === 12) hour24 = 0;
+      } else if (upperPeriod === 'PM') {
+        if (hour24 !== 12) hour24 += 12;
+      }
     }
 
     const formattedHour = hour24.toString().padStart(2, '0');
@@ -234,140 +327,5 @@
 
     return `${day} ${translatedMonth}, ${formattedHour}:${minute}`;
   }
-
-  function setupNameValidation() {
-    const containerElement = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"]');
-
-    if (containerElement) {
-      const form = containerElement.querySelector('form');
-
-      if (form && form.hasAttribute('validation-installed')) {
-        return;
-      }
-
-      const firstLabel = form ? form.querySelector('div:first-child label') : null;
-      const inputField = firstLabel ? firstLabel.querySelector('input[type="text"]') : null;
-      const submitButton = form ? form.querySelector('button[type="submit"]') : null;
-
-      if (inputField && submitButton && firstLabel && form) {
-        let errorSpan = null;
-        let isUpdatingButton = false;
-
-        function createErrorSpan() {
-          if (!errorSpan) {
-            errorSpan = document.createElement('span');
-            errorSpan.className = 'message';
-            errorSpan.setAttribute('data-custom-validation', 'true');
-            inputField.insertAdjacentElement('afterend', errorSpan);
-          }
-          return errorSpan;
-        }
-
-        function removeErrorSpan() {
-          if (errorSpan) {
-            errorSpan.remove();
-            errorSpan = null;
-          }
-        }
-
-        function updateButtonState() {
-          if (isUpdatingButton) return;
-          isUpdatingButton = true;
-
-          const errorLabels = form.querySelectorAll('label.error');
-          const shouldDisable = errorLabels.length > 0;
-          const isCurrentlyDisabled = submitButton.hasAttribute('disabled');
-
-          if (shouldDisable !== isCurrentlyDisabled) {
-            if (shouldDisable) {
-              submitButton.setAttribute('disabled', '');
-              submitButton.classList.add('disabled');
-            } else {
-              submitButton.removeAttribute('disabled');
-              submitButton.classList.remove('disabled');
-            }
-          }
-
-          setTimeout(() => {
-            isUpdatingButton = false;
-          }, 0);
-        }
-
-        function showError(message) {
-          const span = createErrorSpan();
-          span.textContent = message;
-          firstLabel.classList.add('error');
-          updateButtonState();
-        }
-
-        function clearError() {
-          removeErrorSpan();
-          const allErrorSpans = firstLabel.querySelectorAll('span.message');
-
-          if (allErrorSpans.length === 0) {
-            firstLabel.classList.remove('error');
-          }
-
-
-          updateButtonState();
-        }
-
-        function validateField() {
-          const value = inputField.value;
-
-          if (value.length === 0) {
-            clearError();
-            return;
-          }
-
-          if (/[^a-z]/.test(value)) {
-            showError('Apenas letras minúsculas são permitidas (a-z)');
-          } else {
-            clearError();
-          }
-        }
-
-
-        const observer = new MutationObserver(function (mutations) {
-          let shouldUpdate = false;
-
-          mutations.forEach(function (mutation) {
-            if (mutation.type === 'attributes' &&
-              mutation.attributeName === 'class' &&
-              mutation.target.tagName === 'LABEL' &&
-              form.contains(mutation.target) &&
-              mutation.target !== firstLabel) {
-              shouldUpdate = true;
-            }
-          });
-
-          if (shouldUpdate && !isUpdatingButton) {
-            updateButtonState();
-          }
-        });
-
-        const otherLabels = Array.from(form.querySelectorAll('label')).filter(label => label !== firstLabel);
-        otherLabels.forEach(label => {
-          observer.observe(label, {
-            attributes: true,
-            attributeFilter: ['class'],
-            subtree: false
-          });
-        });
-
-        inputField.addEventListener('input', validateField);
-        inputField.addEventListener('blur', validateField);
-        inputField.addEventListener('paste', () => setTimeout(validateField, 50));
-
-        validateField();
-        form.setAttribute('validation-installed', 'true');
-      }
-    }
-  }
-
-
-
-
-
 
 </script>
