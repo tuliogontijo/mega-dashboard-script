@@ -289,9 +289,9 @@
     return text
       .replace(/\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
         mes => monthTranslationsComplete[mes])
-      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4')
       .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,
-        mes => monthTranslations[mes]);
+        mes => monthTranslations[mes])
+      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4')
   }
 
   function translateMessageTime(text) {
