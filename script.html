@@ -15,6 +15,7 @@
   *  Dashboard
   *****************/
   const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
+  const hideDashboardApps = false; // esconder "Aplicatios do painel"
   const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
   const backgroundChat = {
     keepStandard: true, // MUDE PARA false PARA INSERIR UMA IMAGEM DE FUNDO PERSONALIZADA NO DASHBOARD
@@ -186,6 +187,18 @@
       },
       multiple: false,
       persistent: true,
+    },
+    hideDashboardApps && {
+      name: 'hideDashboardApps',
+      selector: 'div[name="Dashboard Apps"]',
+      action: (elemento) => {
+        const parentLi = elemento.closest('li');
+        if (parentLi) {
+          parentLi.style.display = 'none';
+        }
+      },
+      multiple: false,
+      done: false,
     },
   ];
 
