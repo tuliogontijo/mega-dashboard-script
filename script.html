@@ -14,9 +14,16 @@
   /*****************
   *  Dashboard
   *****************/
-  const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
+  const labelKanban = ""; // Nome da aba do kanban, deixe vazio para manter o "Kanban"
   const hideDashboardApps = false; // esconder "Aplicatios do painel"
+  const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
   const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
+  const fixAudioSpeedSelectorTextColor = true; // Corrige a cor do texto do seletor de velocidade do áudio (1x, 1.5x...) que fica branco sobre fundo branco
+  const showAudioLoaderUntilReady = true; // Mostra um loader no lugar do play enquanto o áudio ainda não carregou (evita clique sem som)
+  const favicon = {
+    change: false, // MUDE PARA true PARA TROCAR O FAVICON PADRÃO (vale para login e chat)
+    href: "INSIRA A URL DO NOVO FAVICON" // URL do novo favicon
+  };
   const backgroundChat = {
     keepStandard: true, // MUDE PARA false PARA INSERIR UMA IMAGEM DE FUNDO PERSONALIZADA NO DASHBOARD
     light: "INSIRA A URL DA IMAGEM DE FUNDO PARA O TEMA CLARO", // URL da imagem de fundo para o tema claro
@@ -84,6 +91,18 @@
   ];
 
   const tasksChat = [
+    labelKanban && {
+      name: 'changeLabelKanban',
+      selector: 'div[name="Kanban"]',
+      action: (elemento) => {
+        const label = elemento.querySelector('span.truncate');
+        if (!label) return;
+        label.innerHTML = labelKanban;
+        elemento.title = labelKanban;
+      },
+      multiple: false,
+      done: false,
+    },
     translateMessageTimeToPTBR && {
       name: 'translateMessageSeparator',
       selector: '[id^=messageseparator] span',
@@ -147,9 +166,9 @@
           el.style.backgroundColor = bublleMessageColor.outgoing[colorTheme];
           el.style.boxShadow = "0px 0.5px 1px #666666";
           if (colorTheme === 'light') {
-            const text = el.querySelector('p');
+            const text = el.querySelectorAll('*');
             const time = el.querySelector('time');
-            text && (text.style.color = '#000');
+            text.forEach(t => t.style.color = '#000');
             time && (time.style.color = '#666666');
           }
         })
@@ -173,19 +192,58 @@
       name: 'removeAutoFocusChatInputAtMobile',
       selector: '.ProseMirror.ProseMirror-woot-style',
       action: (elemento) => {
-        if (isMobile && elemento && elemento.getAttribute('contenteditable') === 'true') {
-          elemento.setAttribute('contenteditable', 'false');
-          const enableEditing = () => {
-            elemento.setAttribute('contenteditable', 'true');
-            elemento.focus();
-            elemento.removeEventListener('touchstart', enableEditing);
-            elemento.removeEventListener('click', enableEditing);
-          };
-          elemento.addEventListener('touchstart', enableEditing);
-          elemento.addEventListener('click', enableEditing);
-        }
+        // Só no mobile e só uma vez por instância do editor.
+        // O marcador evita que o observer (persistent) desabilite o campo
+        // de novo a cada mutação depois que o usuário já o habilitou.
+        if (!isMobile || !elemento || elemento.dataset.autofocusHandled === 'true') return;
+
+        elemento.dataset.autofocusHandled = 'true';
+        elemento.setAttribute('contenteditable', 'false');
+        elemento.blur(); // fecha o teclado caso o auto-foco já tenha ocorrido
+
+        const enableEditing = () => {
+          elemento.setAttribute('contenteditable', 'true');
+          elemento.focus();
+          elemento.removeEventListener('touchend', enableEditing);
+          elemento.removeEventListener('click', enableEditing);
+        };
+        elemento.addEventListener('touchend', enableEditing);
+        elemento.addEventListener('click', enableEditing);
       },
       multiple: false,
+      persistent: true,
+    },
+    fixAudioSpeedSelectorTextColor && {
+      name: 'fixAudioSpeedSelectorTextColor',
+      selector: "div[id^='message'] button.rounded-full",
+      action: (elemento) => elemento.forEach(btn => {
+        if (btn.classList.contains('text-white')) {
+          btn.classList.remove('text-white');
+        }
+      }),
+      multiple: true,
+      persistent: true,
+    },
+    showAudioLoaderUntilReady && {
+      name: 'showAudioLoaderUntilReady',
+      selector: 'div[data-bubble-name="audio"]',
+      action: (elemento) => elemento.forEach(bubble => {
+        // O Chatwoot já renderiza o botão de play antes de o Rails devolver a
+        // URL do blob. Até lá o <source> fica com src vazio e o clique não toca
+        // nada — o usuário clica, não ouve e reclama. O src preenchido é o
+        // único sinal confiável de "pronto".
+        // O src chega como mudança de ATRIBUTO: é por isso que o observer
+        // principal também escuta `attributeFilter: ['src']`.
+        const source = bubble.querySelector('audio source');
+        const isReady = !!(source && source.getAttribute('src'));
+
+        if (isReady) {
+          if (bubble.dataset.audioLoading) delete bubble.dataset.audioLoading;
+        } else if (bubble.dataset.audioLoading !== 'true') {
+          bubble.dataset.audioLoading = 'true';
+        }
+      }),
+      multiple: true,
       persistent: true,
     },
     hideDashboardApps && {
@@ -202,7 +260,21 @@
     },
   ];
 
-  const tasks = isLoginPage ? tasksLogin : tasksChat;
+  const tasksCommon = [
+    favicon.change && {
+      name: 'changeFavicon',
+      selector: 'link.favicon[rel="icon"]',
+      action: (elemento) => elemento.forEach(el => {
+        if (el.getAttribute('href') !== favicon.href) {
+          el.setAttribute('href', favicon.href);
+        }
+      }),
+      multiple: true,
+      persistent: true,
+    },
+  ];
+
+  const tasks = (isLoginPage ? tasksLogin : tasksChat).concat(tasksCommon);
 
 
 
@@ -234,20 +306,20 @@
     } else {
       colorTheme = document.getElementsByTagName('html')[0].style.colorScheme;
     }
-    let isEvoInboxPage = window.location.search.includes('?provider=evolution');
-
-    if (validateEvoInboxName && isEvoInboxPage) {
-      const validateEvoInboxNameExecuted = document.querySelector('[headerbuttontext="SETTINGS.INBOXES.NEW_INBOX"] form[validation-installed="true"]');
-      if (!validateEvoInboxNameExecuted) {
-        console.log("chamou validação")
-        setupEvoInboxNameValidation();
-      }
-    }
 
   });
 
 
-  body.observe(document.body, { childList: true, subtree: true });
+  // `attributeFilter` é essencial: sem ele, todo toggle de class/style/aria que
+  // o Vue faz no dashboard acordaria o observer e reexecutaria TODAS as tasks
+  // (medido: ~60x mais chamadas para o mesmo sinal útil). Com o filtro, só
+  // mudanças de `src` entram — que é como o áudio avisa que ficou pronto.
+  body.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['src'],
+  });
 
   /**********************************************************************************************
   *  Styles
@@ -264,6 +336,41 @@
   } else {
     css = `
       /* Estilos página de chat */
+
+      ${showAudioLoaderUntilReady ? `
+      /* Loader enquanto o áudio não está pronto para tocar.
+         O ícone de play é um <span> com mask do iconify: zerando a mask e
+         aplicando borda, o próprio ícone vira o spinner — sem inserir
+         elemento novo, que o Vue removeria no próximo render. */
+      [data-bubble-name="audio"][data-audio-loading="true"] span[class*="i-teenyicons-play"] {
+        background: none !important;
+        -webkit-mask: none !important;
+        mask: none !important;
+        width: 1.125rem !important;
+        height: 1.125rem !important;
+        box-sizing: border-box;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 9999px;
+        opacity: 0.55;
+        animation: mdsAudioSpin 0.7s linear infinite;
+      }
+
+      /* Bloqueia o clique no play enquanto carrega, que é a causa da
+         reclamação. Navegador sem suporte a :has() só ignora esta regra e
+         mantém o spinner. */
+      [data-bubble-name="audio"][data-audio-loading="true"] button:has(span[class*="i-teenyicons-play"]) {
+        pointer-events: none;
+      }
+
+      [data-bubble-name="audio"][data-audio-loading="true"] button {
+        cursor: progress;
+      }
+
+      @keyframes mdsAudioSpin {
+        to { transform: rotate(360deg); }
+      }
+      ` : ''}
     `;
     stylesId = 'chat-styles';
   }
@@ -304,7 +411,7 @@
         mes => monthTranslationsComplete[mes])
       .replace(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,
         mes => monthTranslations[mes])
-      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4')
+      .replace(/(\d{1,2}) (\w+) (\d{4}) (\d{2}:\d{2})/, '$1 de $2 de $3, $4');
   }
 
   function translateMessageTime(text) {
