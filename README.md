@@ -12,6 +12,7 @@ Este repositório contém um script para personalizar a tela de login e o dashbo
 - Ajuste de foco no input de mensagem em dispositivos mobile
 - Loader nos áudios enquanto o arquivo ainda não está pronto para tocar
 - Correção da cor do seletor de velocidade do áudio
+- Exibição das barras de rolagem nos menus de navegação
 - Aplicação dinâmica em SPA via MutationObserver
 
 ## Instalação
@@ -59,6 +60,7 @@ const translateMessageTimeToPTBR = true;
 const removeAutoFocusChatInputAtMobile = true;
 const fixAudioSpeedSelectorTextColor = true;
 const showAudioLoaderUntilReady = true;
+const showNavScrollbars = false;
 const favicon = {
   change: false,
   href: "INSIRA A URL DO NOVO FAVICON"
@@ -94,6 +96,7 @@ const bublleMessageColor = {
 - `removeAutoFocusChatInputAtMobile`: `true` impede que o teclado abra sozinho ao entrar numa conversa no celular
 - `fixAudioSpeedSelectorTextColor`: `true` corrige o seletor de velocidade do áudio (1x, 1.5x...), que ficava branco sobre fundo branco
 - `showAudioLoaderUntilReady`: `true` mostra um loader no lugar do botão de play enquanto o áudio ainda está carregando
+- `showNavScrollbars`: `true` exibe as barras de rolagem dos menus de navegação (o Chatwoot as esconde por padrão)
 
 ### Sobre o loader dos áudios
 

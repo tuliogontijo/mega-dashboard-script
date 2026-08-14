@@ -20,6 +20,7 @@
   const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
   const fixAudioSpeedSelectorTextColor = true; // Corrige a cor do texto do seletor de velocidade do áudio (1x, 1.5x...) que fica branco sobre fundo branco
   const showAudioLoaderUntilReady = true; // Mostra um loader no lugar do play enquanto o áudio ainda não carregou (evita clique sem som)
+  const showNavScrollbars = false; // Mostra as barras de rolagem dos menus de navegação (remove a classe "no-scrollbar" dos <nav>)
   const favicon = {
     change: false, // MUDE PARA true PARA TROCAR O FAVICON PADRÃO (vale para login e chat)
     href: "INSIRA A URL DO NOVO FAVICON" // URL do novo favicon
@@ -243,6 +244,15 @@
           bubble.dataset.audioLoading = 'true';
         }
       }),
+      multiple: true,
+      persistent: true,
+    },
+    showNavScrollbars && {
+      name: 'showNavScrollbars',
+      selector: 'nav.no-scrollbar',
+      action: (elemento) => elemento.forEach(nav => nav.classList.remove('no-scrollbar')),
+      // O próprio seletor já é o guard de idempotência: sem a classe, o <nav>
+      // deixa de casar. Persistente porque o Vue recria os menus na navegação.
       multiple: true,
       persistent: true,
     },
