@@ -11,7 +11,6 @@ Este repositório contém um script para personalizar a tela de login e o dashbo
 - Tradução automática de datas e horários para PT-BR
 - Ajuste de foco no input de mensagem em dispositivos mobile
 - Loader nos áudios enquanto o arquivo ainda não está pronto para tocar
-- Correção da cor do seletor de velocidade do áudio
 - Exibição das barras de rolagem nos menus de navegação
 - Correção do clique fora do menu sanduíche no mobile, que acionava o botão embaixo do menu
 - Recolhimento automático do menu lateral no mobile ao escolher uma opção
@@ -60,7 +59,6 @@ const labelKanban = "";
 const hideDashboardApps = false;
 const translateMessageTimeToPTBR = true;
 const removeAutoFocusChatInputAtMobile = true;
-const fixAudioSpeedSelectorTextColor = true;
 const showAudioLoaderUntilReady = true;
 const audioLoaderMaxWait = 10000;
 const audioLoadErrorMessage = "Não foi possível carregar este áudio";
@@ -100,7 +98,6 @@ const bublleMessageColor = {
 - `hideDashboardApps`: `true` esconde o item "Aplicativos do painel" no menu lateral
 - `translateMessageTimeToPTBR`: `true` traduz datas, horários e tooltips para o PT-BR
 - `removeAutoFocusChatInputAtMobile`: `true` impede que o teclado abra sozinho ao entrar numa conversa no celular
-- `fixAudioSpeedSelectorTextColor`: `true` corrige o seletor de velocidade do áudio (1x, 1.5x...), que ficava branco sobre fundo branco
 - `showAudioLoaderUntilReady`: `true` mostra um loader no lugar do botão de play enquanto o áudio ainda está carregando
 - `audioLoaderMaxWait`: tempo máximo, em milissegundos, que o loader fica girando antes de devolver o botão de play normal
 - `audioLoadErrorMessage`: aviso mostrado na bolha quando o áudio não carrega. Deixe vazio (`""`) para não mostrar aviso nenhum

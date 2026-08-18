@@ -18,7 +18,6 @@
   const hideDashboardApps = false; // esconder "Aplicatios do painel"
   const translateMessageTimeToPTBR = true; // Traduzir hora das mensagem e separadores para o PT-BR
   const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
-  const fixAudioSpeedSelectorTextColor = true; // Corrige a cor do texto do seletor de velocidade do áudio (1x, 1.5x...) que fica branco sobre fundo branco
   const showAudioLoaderUntilReady = true; // Mostra um loader no lugar do play enquanto o áudio ainda não carregou (evita clique sem som)
   const audioLoaderMaxWait = 10000; // Tempo máximo (ms) que o loader do áudio fica girando antes de devolver o play normal
   const audioLoadErrorMessage = "Não foi possível carregar este áudio"; // Aviso mostrado na bolha quando o áudio não carrega; deixe vazio para não mostrar nada
@@ -216,17 +215,6 @@
         elemento.addEventListener('click', enableEditing);
       },
       multiple: false,
-      persistent: true,
-    },
-    fixAudioSpeedSelectorTextColor && {
-      name: 'fixAudioSpeedSelectorTextColor',
-      selector: "div[id^='message'] button.rounded-full",
-      action: (elemento) => elemento.forEach(btn => {
-        if (btn.classList.contains('text-white')) {
-          btn.classList.remove('text-white');
-        }
-      }),
-      multiple: true,
       persistent: true,
     },
     showAudioLoaderUntilReady && {
