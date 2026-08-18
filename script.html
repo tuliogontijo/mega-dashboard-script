@@ -20,6 +20,8 @@
   const removeAutoFocusChatInputAtMobile = true; // Remove o auto foco do campo de input de mensagem ao abrir uma conversa no mobile
   const fixAudioSpeedSelectorTextColor = true; // Corrige a cor do texto do seletor de velocidade do áudio (1x, 1.5x...) que fica branco sobre fundo branco
   const showAudioLoaderUntilReady = true; // Mostra um loader no lugar do play enquanto o áudio ainda não carregou (evita clique sem som)
+  const audioLoaderMaxWait = 10000; // Tempo máximo (ms) que o loader do áudio fica girando antes de devolver o play normal
+  const audioLoadErrorMessage = "Não foi possível carregar este áudio"; // Aviso mostrado na bolha quando o áudio não carrega; deixe vazio para não mostrar nada
   const showNavScrollbars = false; // Mostra as barras de rolagem dos menus de navegação (remove a classe "no-scrollbar" dos <nav>)
   const fixMobileSidebarClickThrough = true; // Impede que o clique fora do menu sanduíche mobile execute a ação do elemento que está embaixo dele
   const closeMobileSidebarOnNavigate = true; // No mobile, recolhe o menu lateral ao escolher uma opção (itens com subitens mantêm o menu aberto para dar acesso ao submenu)
@@ -242,9 +244,39 @@
 
         if (isReady) {
           if (bubble.dataset.audioLoading) delete bubble.dataset.audioLoading;
-        } else if (bubble.dataset.audioLoading !== 'true') {
-          bubble.dataset.audioLoading = 'true';
+          return;
         }
+
+        // Src vazio nem sempre é "ainda carregando". Quando o áudio falha ao
+        // carregar — formato que o aparelho não decodifica (.ogg no iPhone),
+        // arquivo fora do ar — o app limpa o src, tenta de novo algumas vezes
+        // (cw_retry no src) e desiste, deixando o src vazio PARA SEMPRE. Sem
+        // teto, o loader girava eternamente nesses casos. Passado o limite,
+        // devolvemos o play normal e não marcamos mais essa bolha: o áudio
+        // pode não tocar, mas isso é problema do app, não um spinner infinito.
+        // A cor do aviso não pode sair de currentColor: a bolha de saída vem com
+        // text-white e quem recolore o fundo é outra task, que não alcança
+        // pseudo-elemento — o texto sumia no tema claro.
+        const pintarAviso = () => bubble.style.setProperty(
+          '--mds-audio-error-color', colorTheme === 'dark' ? '#ffb4b4' : '#b42318'
+        );
+
+        if (bubble.dataset.audioFailed) {
+          pintarAviso(); // repintado a cada passagem, para seguir a troca de tema
+          return;
+        }
+        if (bubble.dataset.audioLoading === 'true') return;
+
+        bubble.dataset.audioLoading = 'true';
+        setTimeout(() => {
+          const atual = bubble.querySelector('audio source');
+          if (atual && atual.getAttribute('src')) return; // carregou a tempo
+          bubble.dataset.audioFailed = 'true';
+          delete bubble.dataset.audioLoading;
+          // Pinta aqui também: quando o app desiste dos retries as mutações
+          // cessam, e sem isso a task não roda mais nenhuma vez nesta bolha.
+          pintarAviso();
+        }, audioLoaderMaxWait);
       }),
       multiple: true,
       persistent: true,
@@ -420,6 +452,22 @@
 
       @keyframes mdsAudioSpin {
         to { transform: rotate(360deg); }
+      }
+      ` : ''}
+
+      ${showAudioLoaderUntilReady && audioLoadErrorMessage ? `
+      /* Aviso quando o áudio desistiu de carregar. Também é pseudo-elemento,
+         pelo mesmo motivo do spinner: nó novo dentro da bolha o Vue removeria
+         no próximo render. A cor vem da variável que a task escreve na bolha
+         conforme o tema; currentColor é só o fallback. */
+      [data-bubble-name="audio"][data-audio-failed="true"]::after {
+        content: ${JSON.stringify(audioLoadErrorMessage)};
+        display: block;
+        padding: 0.25rem 0.5rem 0;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        text-align: center;
+        color: var(--mds-audio-error-color, currentColor);
       }
       ` : ''}
 

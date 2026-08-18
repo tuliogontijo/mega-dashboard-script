@@ -62,6 +62,8 @@ const translateMessageTimeToPTBR = true;
 const removeAutoFocusChatInputAtMobile = true;
 const fixAudioSpeedSelectorTextColor = true;
 const showAudioLoaderUntilReady = true;
+const audioLoaderMaxWait = 10000;
+const audioLoadErrorMessage = "Não foi possível carregar este áudio";
 const showNavScrollbars = false;
 const fixMobileSidebarClickThrough = true;
 const closeMobileSidebarOnNavigate = true;
@@ -100,6 +102,8 @@ const bublleMessageColor = {
 - `removeAutoFocusChatInputAtMobile`: `true` impede que o teclado abra sozinho ao entrar numa conversa no celular
 - `fixAudioSpeedSelectorTextColor`: `true` corrige o seletor de velocidade do áudio (1x, 1.5x...), que ficava branco sobre fundo branco
 - `showAudioLoaderUntilReady`: `true` mostra um loader no lugar do botão de play enquanto o áudio ainda está carregando
+- `audioLoaderMaxWait`: tempo máximo, em milissegundos, que o loader fica girando antes de devolver o botão de play normal
+- `audioLoadErrorMessage`: aviso mostrado na bolha quando o áudio não carrega. Deixe vazio (`""`) para não mostrar aviso nenhum
 - `showNavScrollbars`: `true` exibe as barras de rolagem dos menus de navegação (o Chatwoot as esconde por padrão)
 - `fixMobileSidebarClickThrough`: `true` faz o clique fora do menu sanduíche mobile apenas fechar o menu, sem acionar o botão que está embaixo
 - `closeMobileSidebarOnNavigate`: `true` recolhe o menu lateral no mobile assim que você escolhe uma opção; itens com subitens continuam mantendo o menu aberto, para dar acesso ao submenu
@@ -118,6 +122,13 @@ como `rgba(0, 0, 0, 0.4)`.
 O Chatwoot exibe o botão de play antes de o arquivo de áudio ficar disponível. O usuário clica,
 não ouve nada e acha que está quebrado. Com `showAudioLoaderUntilReady` ativo, o botão vira um
 loader e fica bloqueado até o áudio estar pronto para tocar.
+
+Quando o áudio **não consegue** carregar — formato que o aparelho não decodifica (arquivos `.ogg`
+no iPhone, por exemplo) ou arquivo indisponível —, o app limpa o endereço do áudio, tenta de novo
+algumas vezes e desiste. Nesse caso o loader não tem como terminar sozinho, então ele desiste junto
+depois de `audioLoaderMaxWait`, devolve o botão de play normal e mostra o aviso de
+`audioLoadErrorMessage` embaixo do player. Aumente o tempo se a sua equipe usa conexões lentas e o
+loader estiver sumindo cedo demais.
 
 ## Traduções automáticas
 
