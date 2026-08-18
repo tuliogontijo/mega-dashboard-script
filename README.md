@@ -13,6 +13,8 @@ Este repositório contém um script para personalizar a tela de login e o dashbo
 - Loader nos áudios enquanto o arquivo ainda não está pronto para tocar
 - Correção da cor do seletor de velocidade do áudio
 - Exibição das barras de rolagem nos menus de navegação
+- Correção do clique fora do menu sanduíche no mobile, que acionava o botão embaixo do menu
+- Recolhimento automático do menu lateral no mobile ao escolher uma opção
 - Aplicação dinâmica em SPA via MutationObserver
 
 ## Instalação
@@ -61,6 +63,8 @@ const removeAutoFocusChatInputAtMobile = true;
 const fixAudioSpeedSelectorTextColor = true;
 const showAudioLoaderUntilReady = true;
 const showNavScrollbars = false;
+const fixMobileSidebarClickThrough = true;
+const closeMobileSidebarOnNavigate = true;
 const favicon = {
   change: false,
   href: "INSIRA A URL DO NOVO FAVICON"
@@ -97,6 +101,17 @@ const bublleMessageColor = {
 - `fixAudioSpeedSelectorTextColor`: `true` corrige o seletor de velocidade do áudio (1x, 1.5x...), que ficava branco sobre fundo branco
 - `showAudioLoaderUntilReady`: `true` mostra um loader no lugar do botão de play enquanto o áudio ainda está carregando
 - `showNavScrollbars`: `true` exibe as barras de rolagem dos menus de navegação (o Chatwoot as esconde por padrão)
+- `fixMobileSidebarClickThrough`: `true` faz o clique fora do menu sanduíche mobile apenas fechar o menu, sem acionar o botão que está embaixo
+- `closeMobileSidebarOnNavigate`: `true` recolhe o menu lateral no mobile assim que você escolhe uma opção; itens com subitens continuam mantendo o menu aberto, para dar acesso ao submenu
+
+### Sobre o clique fora do menu mobile
+
+No celular, o menu sanduíche abre por cima do conteúdo sem nenhum fundo bloqueando a tela. Tocar
+fora fecha o menu, mas o toque também chega ao botão que estava embaixo e executa a ação dele — o
+usuário fecha o menu e acaba abrindo outra coisa. Com `fixMobileSidebarClickThrough` ativo, um
+fundo transparente cobre a tela enquanto o menu está aberto: o toque para nesse fundo e só fecha o
+menu. Para escurecer o conteúdo atrás do menu, troque o `background: transparent` da regra por algo
+como `rgba(0, 0, 0, 0.4)`.
 
 ### Sobre o loader dos áudios
 

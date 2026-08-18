@@ -21,6 +21,8 @@
   const fixAudioSpeedSelectorTextColor = true; // Corrige a cor do texto do seletor de velocidade do áudio (1x, 1.5x...) que fica branco sobre fundo branco
   const showAudioLoaderUntilReady = true; // Mostra um loader no lugar do play enquanto o áudio ainda não carregou (evita clique sem som)
   const showNavScrollbars = false; // Mostra as barras de rolagem dos menus de navegação (remove a classe "no-scrollbar" dos <nav>)
+  const fixMobileSidebarClickThrough = true; // Impede que o clique fora do menu sanduíche mobile execute a ação do elemento que está embaixo dele
+  const closeMobileSidebarOnNavigate = true; // No mobile, recolhe o menu lateral ao escolher uma opção (itens com subitens mantêm o menu aberto para dar acesso ao submenu)
   const favicon = {
     change: false, // MUDE PARA true PARA TROCAR O FAVICON PADRÃO (vale para login e chat)
     href: "INSIRA A URL DO NOVO FAVICON" // URL do novo favicon
@@ -256,6 +258,45 @@
       multiple: true,
       persistent: true,
     },
+    closeMobileSidebarOnNavigate && {
+      name: 'closeMobileSidebarOnNavigate',
+      selector: 'aside',
+      action: (elemento) => {
+        if (elemento.dataset.autocloseHandled) return;
+        elemento.dataset.autocloseHandled = 'true';
+
+        elemento.addEventListener('click', (event) => {
+          // No desktop o <aside> vira md:relative e não há nada a recolher.
+          if (getComputedStyle(elemento).position !== 'fixed') return;
+
+          const item = event.target.closest('a[href]');
+          if (!item) return; // clique no accordion/vazio: não leva a destino nenhum
+
+          const li = item.closest('li');
+
+          // A decisão fica para o tick seguinte, depois de o Vue aplicar o
+          // resultado do clique. Um item-pai só mostra o <ul> dos subitens
+          // DEPOIS de expandir, então checar antes daria falso-negativo e
+          // recolheria o menu na cara do submenu recém-aberto.
+          setTimeout(() => {
+            const isParent = item.hasAttribute('aria-expanded') || (li && li.querySelector('ul'));
+            if (isParent) return;
+
+            if (/translate-x-full/.test(elemento.className)) return; // o app já recolheu
+
+            // Recolhe pelo caminho do próprio app: o <aside> tem v-on-click-outside,
+            // e um clique sintético no body entra como "clique fora" e chama o
+            // closeMobileSidebar, que é idempotente.
+            // Não use o #mobile-sidebar-launcher: ele é um <div> (o @click está num
+            // <button> dentro dele), é toggle — reabriria o menu — e some nas rotas
+            // de conversa, justo o destino mais comum.
+            document.body.click();
+          }, 0);
+        });
+      },
+      multiple: false,
+      persistent: true,
+    },
     hideDashboardApps && {
       name: 'hideDashboardApps',
       selector: 'div[name="Dashboard Apps"]',
@@ -379,6 +420,38 @@
 
       @keyframes mdsAudioSpin {
         to { transform: rotate(360deg); }
+      }
+      ` : ''}
+
+      ${fixMobileSidebarClickThrough ? `
+      /* O menu sanduíche mobile abre SEM backdrop, e o fechamento por "clique
+         fora" é um listener no document (fase de bubble). O elemento clicado
+         por baixo processa o próprio clique antes desse listener rodar, então
+         o menu fecha E a ação de baixo dispara junto.
+         Este ::before é um backdrop transparente que só existe enquanto o menu
+         está aberto: o hit-test do navegador entrega o clique a ele, e não ao
+         botão de baixo. Como o clique continua subindo até o document (com
+         alvo = body, fora do <aside>), o fechamento nativo do app segue
+         funcionando — nada de stopPropagation, que quebrava o próprio
+         fechamento nos testes.
+         É CSS e não task porque a abertura do menu troca só a CLASSE do
+         <aside>, mutação de atributo que o observer não escuta (ver
+         attributeFilter). O CSS reage sem depender de evento nenhum.
+         z-index abaixo do <aside> (z-40) para não cobrir o próprio menu.
+         O gatilho é só a classe do <aside>: no app ela existe exatamente
+         quando o menu está fechado (:class de !isMobileSidebarOpen), e o
+         md: do Tailwind cuida do desktop junto com a media query. Não use o
+         #mobile-sidebar-launcher como âncora — ele é v-if de rota e some nas
+         conversas, desligando o backdrop bem onde ele é mais necessário.
+         Navegador sem :has() ignora a regra e o comportamento fica como hoje. */
+      @media (max-width: 767px) {
+        body:has(aside:not([class*="translate-x-full"]))::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: 39;
+          background: transparent; /* troque por rgba(0, 0, 0, 0.4) para escurecer o fundo */
+        }
       }
       ` : ''}
     `;
