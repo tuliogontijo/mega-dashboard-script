@@ -45,8 +45,6 @@
     }
   };
 
-
-
   /**********************************************************************************************/
 
   const isLoginPage = window.location.pathname.includes('/app/login');
@@ -196,14 +194,11 @@
       name: 'removeAutoFocusChatInputAtMobile',
       selector: '.ProseMirror.ProseMirror-woot-style',
       action: (elemento) => {
-        // Só no mobile e só uma vez por instância do editor.
-        // O marcador evita que o observer (persistent) desabilite o campo
-        // de novo a cada mutação depois que o usuário já o habilitou.
         if (!isMobile || !elemento || elemento.dataset.autofocusHandled === 'true') return;
 
         elemento.dataset.autofocusHandled = 'true';
         elemento.setAttribute('contenteditable', 'false');
-        elemento.blur(); // fecha o teclado caso o auto-foco já tenha ocorrido
+        elemento.blur();
 
         const enableEditing = () => {
           elemento.setAttribute('contenteditable', 'true');
@@ -221,12 +216,6 @@
       name: 'showAudioLoaderUntilReady',
       selector: 'div[data-bubble-name="audio"]',
       action: (elemento) => elemento.forEach(bubble => {
-        // O Chatwoot já renderiza o botão de play antes de o Rails devolver a
-        // URL do blob. Até lá o <source> fica com src vazio e o clique não toca
-        // nada — o usuário clica, não ouve e reclama. O src preenchido é o
-        // único sinal confiável de "pronto".
-        // O src chega como mudança de ATRIBUTO: é por isso que o observer
-        // principal também escuta `attributeFilter: ['src']`.
         const source = bubble.querySelector('audio source');
         const isReady = !!(source && source.getAttribute('src'));
 
@@ -235,22 +224,12 @@
           return;
         }
 
-        // Src vazio nem sempre é "ainda carregando". Quando o áudio falha ao
-        // carregar — formato que o aparelho não decodifica (.ogg no iPhone),
-        // arquivo fora do ar — o app limpa o src, tenta de novo algumas vezes
-        // (cw_retry no src) e desiste, deixando o src vazio PARA SEMPRE. Sem
-        // teto, o loader girava eternamente nesses casos. Passado o limite,
-        // devolvemos o play normal e não marcamos mais essa bolha: o áudio
-        // pode não tocar, mas isso é problema do app, não um spinner infinito.
-        // A cor do aviso não pode sair de currentColor: a bolha de saída vem com
-        // text-white e quem recolore o fundo é outra task, que não alcança
-        // pseudo-elemento — o texto sumia no tema claro.
         const pintarAviso = () => bubble.style.setProperty(
           '--mds-audio-error-color', colorTheme === 'dark' ? '#ffb4b4' : '#b42318'
         );
 
         if (bubble.dataset.audioFailed) {
-          pintarAviso(); // repintado a cada passagem, para seguir a troca de tema
+          pintarAviso();
           return;
         }
         if (bubble.dataset.audioLoading === 'true') return;
@@ -258,11 +237,10 @@
         bubble.dataset.audioLoading = 'true';
         setTimeout(() => {
           const atual = bubble.querySelector('audio source');
-          if (atual && atual.getAttribute('src')) return; // carregou a tempo
+          if (atual && atual.getAttribute('src')) return;
           bubble.dataset.audioFailed = 'true';
           delete bubble.dataset.audioLoading;
-          // Pinta aqui também: quando o app desiste dos retries as mutações
-          // cessam, e sem isso a task não roda mais nenhuma vez nesta bolha.
+
           pintarAviso();
         }, audioLoaderMaxWait);
       }),
@@ -273,8 +251,7 @@
       name: 'showNavScrollbars',
       selector: 'nav.no-scrollbar',
       action: (elemento) => elemento.forEach(nav => nav.classList.remove('no-scrollbar')),
-      // O próprio seletor já é o guard de idempotência: sem a classe, o <nav>
-      // deixa de casar. Persistente porque o Vue recria os menus na navegação.
+
       multiple: true,
       persistent: true,
     },
@@ -286,33 +263,20 @@
         elemento.dataset.autocloseHandled = 'true';
 
         elemento.addEventListener('click', (event) => {
-          // No desktop o <aside> vira md:relative e não há nada a recolher.
           if (getComputedStyle(elemento).position !== 'fixed') return;
 
           const item = event.target.closest('a[href]');
-          if (!item) return; // clique no accordion/vazio: não leva a destino nenhum
+          if (!item) return;
 
           const li = item.closest('li');
+          if (item.hasAttribute('aria-expanded') || (li && li.querySelector('ul'))) return;
 
-          // A decisão fica para o tick seguinte, depois de o Vue aplicar o
-          // resultado do clique. Um item-pai só mostra o <ul> dos subitens
-          // DEPOIS de expandir, então checar antes daria falso-negativo e
-          // recolheria o menu na cara do submenu recém-aberto.
           setTimeout(() => {
-            const isParent = item.hasAttribute('aria-expanded') || (li && li.querySelector('ul'));
-            if (isParent) return;
+            if (/translate-x-full/.test(elemento.className)) return;
 
-            if (/translate-x-full/.test(elemento.className)) return; // o app já recolheu
-
-            // Recolhe pelo caminho do próprio app: o <aside> tem v-on-click-outside,
-            // e um clique sintético no body entra como "clique fora" e chama o
-            // closeMobileSidebar, que é idempotente.
-            // Não use o #mobile-sidebar-launcher: ele é um <div> (o @click está num
-            // <button> dentro dele), é toggle — reabriria o menu — e some nas rotas
-            // de conversa, justo o destino mais comum.
             document.body.click();
           }, 0);
-        });
+        }, true);
       },
       multiple: false,
       persistent: true,
@@ -347,8 +311,6 @@
 
   const tasks = (isLoginPage ? tasksLogin : tasksChat).concat(tasksCommon);
 
-
-
   /**********************************************************************************************
   *  Mutations
   **********************************************************************************************/
@@ -380,11 +342,6 @@
 
   });
 
-
-  // `attributeFilter` é essencial: sem ele, todo toggle de class/style/aria que
-  // o Vue faz no dashboard acordaria o observer e reexecutaria TODAS as tasks
-  // (medido: ~60x mais chamadas para o mesmo sinal útil). Com o filtro, só
-  // mudanças de `src` entram — que é como o áudio avisa que ficou pronto.
   body.observe(document.body, {
     childList: true,
     subtree: true,
@@ -399,20 +356,12 @@
   let stylesId, css;
   if (isLoginPage) {
     css = `
-      /* Estilos página de login */
     `;
     stylesId = 'login-styles';
 
-
   } else {
     css = `
-      /* Estilos página de chat */
-
       ${showAudioLoaderUntilReady ? `
-      /* Loader enquanto o áudio não está pronto para tocar.
-         O ícone de play é um <span> com mask do iconify: zerando a mask e
-         aplicando borda, o próprio ícone vira o spinner — sem inserir
-         elemento novo, que o Vue removeria no próximo render. */
       [data-bubble-name="audio"][data-audio-loading="true"] span[class*="i-teenyicons-play"] {
         background: none !important;
         -webkit-mask: none !important;
@@ -427,9 +376,6 @@
         animation: mdsAudioSpin 0.7s linear infinite;
       }
 
-      /* Bloqueia o clique no play enquanto carrega, que é a causa da
-         reclamação. Navegador sem suporte a :has() só ignora esta regra e
-         mantém o spinner. */
       [data-bubble-name="audio"][data-audio-loading="true"] button:has(span[class*="i-teenyicons-play"]) {
         pointer-events: none;
       }
@@ -444,10 +390,6 @@
       ` : ''}
 
       ${showAudioLoaderUntilReady && audioLoadErrorMessage ? `
-      /* Aviso quando o áudio desistiu de carregar. Também é pseudo-elemento,
-         pelo mesmo motivo do spinner: nó novo dentro da bolha o Vue removeria
-         no próximo render. A cor vem da variável que a task escreve na bolha
-         conforme o tema; currentColor é só o fallback. */
       [data-bubble-name="audio"][data-audio-failed="true"]::after {
         content: ${JSON.stringify(audioLoadErrorMessage)};
         display: block;
@@ -460,33 +402,13 @@
       ` : ''}
 
       ${fixMobileSidebarClickThrough ? `
-      /* O menu sanduíche mobile abre SEM backdrop, e o fechamento por "clique
-         fora" é um listener no document (fase de bubble). O elemento clicado
-         por baixo processa o próprio clique antes desse listener rodar, então
-         o menu fecha E a ação de baixo dispara junto.
-         Este ::before é um backdrop transparente que só existe enquanto o menu
-         está aberto: o hit-test do navegador entrega o clique a ele, e não ao
-         botão de baixo. Como o clique continua subindo até o document (com
-         alvo = body, fora do <aside>), o fechamento nativo do app segue
-         funcionando — nada de stopPropagation, que quebrava o próprio
-         fechamento nos testes.
-         É CSS e não task porque a abertura do menu troca só a CLASSE do
-         <aside>, mutação de atributo que o observer não escuta (ver
-         attributeFilter). O CSS reage sem depender de evento nenhum.
-         z-index abaixo do <aside> (z-40) para não cobrir o próprio menu.
-         O gatilho é só a classe do <aside>: no app ela existe exatamente
-         quando o menu está fechado (:class de !isMobileSidebarOpen), e o
-         md: do Tailwind cuida do desktop junto com a media query. Não use o
-         #mobile-sidebar-launcher como âncora — ele é v-if de rota e some nas
-         conversas, desligando o backdrop bem onde ele é mais necessário.
-         Navegador sem :has() ignora a regra e o comportamento fica como hoje. */
       @media (max-width: 767px) {
         body:has(aside:not([class*="translate-x-full"]))::before {
           content: '';
           position: fixed;
           inset: 0;
           z-index: 39;
-          background: transparent; /* troque por rgba(0, 0, 0, 0.4) para escurecer o fundo */
+          background: transparent;
         }
       }
       ` : ''}
